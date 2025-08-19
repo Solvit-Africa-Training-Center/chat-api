@@ -1,6 +1,9 @@
+import re
+from urllib import response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import RegisterSerializer
 from .models import User
 from .tasks import send_welcome_email
@@ -18,3 +21,17 @@ class RegisterView(ModelViewSet):
         user = serializer.save()
         send_welcome_email.delay(user.id)
         return Response({"message": "User created and welcome email sent successfully", 'id': user.id, 'username': user.username}, status=201)
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        return Response(
+            {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "last_seen": getattr(user, 'last_seen', None)
+            },
+            status=200
+        )
