@@ -32,17 +32,30 @@ class Conversation(models.Model):
         return f"{self.get_type_display()} #{self.pk} {self.title}"
 
     def unread_count_for(self, user):
-
         try:
             cp = self.participants_through.get(user=user)
-            if cp.last_read_at:
-                last_read = cp.last_read_at
-            else:
-                last_read = timezone.make_aware(datetime.datetime.min)
+            last_read = cp.last_read_at or timezone.make_aware(datetime.datetime.min)
         except ConversationParticipant.DoesNotExist:
             return 0
-
         return self.messages.exclude(sender=user).filter(created_at__gt=last_read).count()
+
+    @classmethod
+    def get_or_create_direct(cls, user1, user2):
+        convo = (
+            cls.objects
+            .filter(type=cls.TYPE_DIRECT)
+            .filter(participants=user1)
+            .filter(participants=user2)
+            .distinct()
+            .first()
+        )
+        created = False
+        if not convo:
+            convo = cls.objects.create(type=cls.TYPE_DIRECT)
+            ConversationParticipant.objects.create(conversation=convo, user=user1)
+            ConversationParticipant.objects.create(conversation=convo, user=user2)
+            created = True
+        return convo, created
 
 
 class ConversationParticipant(models.Model):

@@ -37,8 +37,31 @@ class ConversationCreateSerializer(serializers.Serializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserLiteSerializer(read_only=True)
+    conversation_id = serializers.IntegerField(source="conversation.id", read_only=True)
 
     class Meta:
         model = Message
-        fields = ("id", "conversation", "sender", "content", "created_at")
-        read_only_fields = ("id", "sender", "created_at")
+        fields = ("id", "conversation_id", "sender", "content", "created_at")
+        read_only_fields = ("id", "sender", "conversation_id", "created_at")
+
+
+class MessageCreateSerializer(serializers.ModelSerializer):
+    recipient_id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = Message
+        fields = ("conversation", "recipient_id", "content", "parent")
+        read_only_fields = ("conversation", "parent")
+
+    def validate(self, attrs):
+        if not attrs.get("conversation") and not attrs.get("recipient_id"):
+            raise serializers.ValidationError(
+                "You must provide either conversation_id or recipient_id"
+            )
+        return attrs
+
+
+class MessageUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ("content",)

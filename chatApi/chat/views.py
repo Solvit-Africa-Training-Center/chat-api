@@ -1,14 +1,17 @@
-from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
 from .models import Conversation, ConversationParticipant, Message
-from .serializers import ConversationSerializer, MessageSerializer, ConversationCreateSerializer
+from .serializers import (
+    ConversationSerializer, MessageSerializer,
+    ConversationCreateSerializer,
+    MessageCreateSerializer, MessageUpdateSerializer
+)
 from .permissions import IsConversationParticipant
 
 User = get_user_model()
@@ -47,23 +50,7 @@ class ConversationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
             )
 
         other_user = get_object_or_404(User, pk=other_id)
-
-        convo = (
-            Conversation.objects
-            .filter(type=Conversation.TYPE_DIRECT)
-            .filter(participants=request.user)
-            .filter(participants=other_user)
-            .distinct()
-            .first()
-        )
-
-        created = False
-        if not convo:
-            convo = Conversation.objects.create(type=Conversation.TYPE_DIRECT)
-            ConversationParticipant.objects.create(conversation=convo, user=request.user)
-            ConversationParticipant.objects.create(conversation=convo, user=other_user)
-            created = True
-
+        convo, created = Conversation.get_or_create_direct(request.user, other_user)
         data = ConversationSerializer(convo, context={"request": request}).data
         return Response(data, status=status.HTTP_201_CREATED if created else 200)
 
@@ -82,22 +69,28 @@ class ConversationViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
 
 
 class MessageViewSet(viewsets.ModelViewSet):
-    serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ["create"]:
+            return MessageCreateSerializer
+        if self.action in ["update", "partial_update"]:
+            return MessageUpdateSerializer
+        return MessageSerializer
 
     def get_queryset(self):
         return Message.objects.filter(conversation__participants=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        ser = self.get_serializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        convo = ser.validated_data.get("conversation")
-        recipient_id = request.data.get("recipient_id")
+        convo = serializer.validated_data.get("conversation")
+        recipient_id = serializer.validated_data.get("recipient_id")
 
         if not convo and recipient_id:
             recipient = get_object_or_404(User, pk=recipient_id)
-            convo, _ = Conversation.objects.get_or_create_direct(request.user, recipient)
+            convo, _ = Conversation.get_or_create_direct(request.user, recipient)
 
         if not convo:
             return Response(
@@ -108,10 +101,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         msg = Message.objects.create(
             conversation=convo,
             sender=request.user,
-            content=ser.validated_data.get("content", ""),
-            parent=ser.validated_data.get("parent")
+            content=serializer.validated_data.get("content", ""),
+            parent=serializer.validated_data.get("parent")
         )
 
-        out = self.get_serializer(msg).data
-        return Response(out, status=status.HTTP_201_CREATED)
-
+        return Response(MessageSerializer(msg).data, status=status.HTTP_201_CREATED)

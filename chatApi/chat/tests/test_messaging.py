@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from chat.models import Conversation
+from chat.models import ConversationParticipant
 
 User = get_user_model()
 
@@ -40,7 +41,7 @@ class MessagingTestCase(TestCase):
         conv = self.client.post("/api/conversations/direct/", {"other_user_id": self.kevin.id}, format="json").data
         conv_id = conv["id"]
 
-        msg = self.client.post("/api/messages/", {"conversation": conv_id, "content": "hello bro"}, format="json")
+        msg = self.client.post("/api/messages/", {"recipient_id": self.kevin.id, "content": "hello bro"}, format="json")
         self.assertEqual(msg.status_code, 201)
 
         my_unread = self.client.get(f"/api/conversations/{conv_id}/unread_count/")
@@ -54,18 +55,19 @@ class MessagingTestCase(TestCase):
 
     def test_mark_read_clears_unread(self):
         self.login_as(self.kenny)
-        conv = self.client.post("/api/conversations/direct/", {"other_user_id": self.kevin.id}, format="json").data
-        conv_id = conv["id"]
-
-        self.client.post("/api/messages/", {"conversation": conv_id, "content": "hi"}, format="json")
-        self.client.post("/api/messages/", {"conversation": conv_id, "content": "how are you"}, format="json")
+        msg1 = self.client.post("/api/messages/", {"recipient_id": self.kevin.id, "content": "hi"}, format="json")
+        msg2 = self.client.post("/api/messages/", {"recipient_id": self.kevin.id, "content": "how are you"}, format="json")
+        conv_id = msg1.data["conversation_id"]
+        
+        ConversationParticipant.objects.filter(conversation_id=conv_id, user=self.kevin).update(last_read_at=None)
 
         self.login_as(self.kevin)
         before = self.client.get(f"/api/conversations/{conv_id}/unread_count/")
-        self.assertEqual(before.data["unread_count"], 2)
+        self.assertEqual(before.data["unread_count"], 2) 
 
         mark = self.client.post(f"/api/conversations/{conv_id}/mark_read/")
         self.assertEqual(mark.status_code, 200)
 
         after = self.client.get(f"/api/conversations/{conv_id}/unread_count/")
         self.assertEqual(after.data["unread_count"], 0)
+
