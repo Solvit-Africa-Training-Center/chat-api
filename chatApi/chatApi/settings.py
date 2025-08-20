@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'channels',
     'accounts',
     'chat',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -54,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.UpdateLastSeenMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -171,3 +173,16 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'randomstuff2166@gmail.com'
 EMAIL_HOST_PASSWORD = 'zqdsabkywecipkql'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,  
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Authorization header using the Bearer scheme. Example: 'Bearer <your_token>'",
+        }
+    },
+}
