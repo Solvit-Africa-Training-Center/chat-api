@@ -1,16 +1,15 @@
-from dataclasses import field, fields
-from os import read
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Conversation, ConversationParticipant, Message
+from .models import Conversation, Message
 
 User = get_user_model()
+
 
 class UserLiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username")
-    
+
 
 class ConversationSerializer(serializers.ModelSerializer):
     participants = UserLiteSerializer(many=True, read_only=True)
@@ -18,15 +17,13 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Conversation
-        fields = ("id", "type", "title", "participants", "last_message_at", "unread_count")
-    
+        fields = ["id", "type", "title", "participants", "last_message_at", "unread_count"]
 
     def get_unread_count(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
+        user = self.context["request"].user
+        if not user.is_authenticated:
             return 0
-        return obj.unread_count_for(request.user)
-    
+        return obj.unread_count_for(user)
 
 
 class ConversationCreateSerializer(serializers.Serializer):
@@ -36,7 +33,7 @@ class ConversationCreateSerializer(serializers.Serializer):
         if not User.objects.filter(pk=value).exists():
             raise serializers.ValidationError("User does not exist")
         return value
-    
+
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserLiteSerializer(read_only=True)
@@ -44,4 +41,4 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ("id", "conversation", "sender", "content", "created_at")
-        read_only_fields = ("id","sender", "created_at")
+        read_only_fields = ("id", "sender", "created_at")
