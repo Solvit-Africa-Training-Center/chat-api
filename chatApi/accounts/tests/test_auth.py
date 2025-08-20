@@ -39,7 +39,6 @@ class RegisterViewTests(APITestCase):
 
 
     def test_registration_rejects_duplicate_username(self):
-        # Create the first user
         User.objects.create_user(username="chris", email="c@e.com", password="pass123")
         payload = {
             "username": "chris",

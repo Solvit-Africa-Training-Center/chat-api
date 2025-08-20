@@ -13,7 +13,6 @@ class MessagingTestCase(TestCase):
         self.kevin = User.objects.create_user(username="kevin", password="1234")
 
         def login_as(user):
-            # ✅ correct JWT login endpoint
             resp = self.client.post("/login/", {"username": user.username, "password": "1234"}, format="json")
             assert resp.status_code == 200, resp.data
             access = resp.data["access"]
@@ -44,7 +43,6 @@ class MessagingTestCase(TestCase):
         msg = self.client.post("/api/messages/", {"conversation": conv_id, "content": "hello bro"}, format="json")
         self.assertEqual(msg.status_code, 201)
 
-        # ✅ use new unread_count action
         my_unread = self.client.get(f"/api/conversations/{conv_id}/unread_count/")
         self.assertEqual(my_unread.status_code, 200)
         self.assertEqual(my_unread.data["unread_count"], 0)

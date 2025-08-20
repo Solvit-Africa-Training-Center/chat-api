@@ -95,7 +95,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         convo = ser.validated_data.get("conversation")
         recipient_id = request.data.get("recipient_id")
 
-        # If no conversation is passed, auto-create/find direct convo
         if not convo and recipient_id:
             recipient = get_object_or_404(User, pk=recipient_id)
             convo, _ = Conversation.objects.get_or_create_direct(request.user, recipient)

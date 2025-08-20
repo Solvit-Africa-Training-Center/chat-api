@@ -32,15 +32,12 @@ class Conversation(models.Model):
         return f"{self.get_type_display()} #{self.pk} {self.title}"
 
     def unread_count_for(self, user):
-        """
-        Returns the number of unread messages for the given user.
-        """
+
         try:
             cp = self.participants_through.get(user=user)
             if cp.last_read_at:
                 last_read = cp.last_read_at
             else:
-                # minimal datetime, made aware of timezone
                 last_read = timezone.make_aware(datetime.datetime.min)
         except ConversationParticipant.DoesNotExist:
             return 0
