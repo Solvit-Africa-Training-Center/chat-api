@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 import datetime
 
+User = settings.AUTH_USER_MODEL
 
 class Conversation(models.Model):
     TYPE_DIRECT = "direct"
