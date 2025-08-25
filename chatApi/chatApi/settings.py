@@ -43,8 +43,8 @@ INSTALLED_APPS = [
     'channels',
     'accounts',
     'chat',
-    'drf_yasg',
     'chat_room',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
