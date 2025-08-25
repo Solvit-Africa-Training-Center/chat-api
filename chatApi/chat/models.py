@@ -84,7 +84,7 @@ class Message(models.Model):
         Conversation, on_delete=models.CASCADE, related_name="messages"
     )
     sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_messages"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_sent_messages"
     )
     content = models.TextField(blank=True)
     parent = models.ForeignKey(

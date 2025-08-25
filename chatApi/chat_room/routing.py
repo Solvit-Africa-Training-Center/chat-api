@@ -1,6 +1,6 @@
 from django.urls import re_path
-from .consumers import ThreadConsumer
+from . import consumers
 
 websocket_urlpatterns = [
-    re_path(r'^ws/threads/(?P<thread_id>[0-9]+)/$', ThreadConsumer.as_asgi()),
+    re_path(r"ws/rooms/(?P<room_id>\d+)/$", consumers.ChatConsumer.as_asgi()),
 ]
